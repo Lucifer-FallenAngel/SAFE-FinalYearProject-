@@ -81,6 +81,12 @@ module.exports = (sequelize) => {
         allowNull: true,
       },
 
+      deepfake_scan: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      },
+
+
 
 
     },

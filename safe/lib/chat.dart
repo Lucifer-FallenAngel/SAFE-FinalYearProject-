@@ -705,6 +705,10 @@ class _ChatPageState extends State<ChatPage> {
                             ? jsonDecode(m['file_scan'])
                             : m['file_scan'];
 
+                        final deepfakeScan = m['deepfake_scan'] is String
+                            ? jsonDecode(m['deepfake_scan'])
+                            : m['deepfake_scan'];
+
                         final showDateHeader =
                             index == 0 ||
                             DateTime.parse(
@@ -837,6 +841,49 @@ class _ChatPageState extends State<ChatPage> {
                                                       ),
                                                     ],
                                                   ),
+                                                ),
+                                              ),
+
+                                            if (deepfakeScan != null)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  top: 4,
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      deepfakeScan['isFake'] ==
+                                                              true
+                                                          ? Icons
+                                                                .face_retouching_off
+                                                          : Icons.verified_user,
+                                                      size: 14,
+                                                      color:
+                                                          deepfakeScan['isFake'] ==
+                                                              true
+                                                          ? Colors.red
+                                                          : Colors.green,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      deepfakeScan['isFake'] ==
+                                                              true
+                                                          ? 'Deepfake detected (${(deepfakeScan['confidence'] * 100).toStringAsFixed(1)}%)'
+                                                          : 'Real image (${(deepfakeScan['confidence'] * 100).toStringAsFixed(1)}%)',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color:
+                                                            deepfakeScan['isFake'] ==
+                                                                true
+                                                            ? Colors.red
+                                                            : Colors.green,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                           ],

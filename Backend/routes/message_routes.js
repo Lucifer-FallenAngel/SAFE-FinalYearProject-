@@ -6,6 +6,8 @@ const crypto = require('crypto');
 const fs = require('fs');
 
 const db = require('../models');
+const { runDeepfakeDetection } = require('../utils/deepfake_runner');
+
 
 const {
   extractUrls,
@@ -155,6 +157,18 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       allow_upload === 'true'
     );
 
+    /* ---------------- DEEPFAKE DETECTION (IMAGES ONLY) ---------------- */
+    let deepfakeScan = null;
+
+    if (req.file.mimetype.startsWith('image/')) {
+      try {
+        deepfakeScan = await runDeepfakeDetection(req.file.path);
+      } catch (err) {
+        console.error('Deepfake detection failed:', err.message);
+      }
+    }
+
+
     const blocked = await BlockedUser.findOne({
       where: {
         [Op.or]: [
@@ -191,6 +205,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       file_hash: fileHash,
       contains_file: true,
       file_scan: fileScanResult,
+      deepfake_scan: deepfakeScan,
       status: 'sent',
       deleted_for: [],
     });
