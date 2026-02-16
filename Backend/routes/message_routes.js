@@ -160,14 +160,38 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     /* ---------------- DEEPFAKE DETECTION (IMAGES ONLY) ---------------- */
     let deepfakeScan = null;
 
-    if (req.file.mimetype.startsWith('image/')) {
+    // ✅ EXTENSION-BASED CHECK (ANDROID SAFE)
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+    const fileExt = path.extname(req.file.originalname).toLowerCase();
+
+    if (imageExtensions.includes(fileExt)) {
       try {
-        deepfakeScan = await runDeepfakeDetection(req.file.path);
+        const result = await runDeepfakeDetection(req.file.path);
+
+        console.log('🧠 RAW PYTHON RESULT =>', result);
+
+        if (result && typeof result.isFake === 'boolean') {
+          deepfakeScan = result;
+        }
       } catch (err) {
-        console.error('Deepfake detection failed:', err.message);
+        console.error('Deepfake detection failed:', err);
       }
     }
 
+    console.log('🧠 FINAL DEEPFAKE SCAN BEFORE SAVE =>', deepfakeScan);
+
+
+
+
+    console.log('DEEPFAKE RESULT 2=>', deepfakeScan);
+    
+    // const result = await runDeepfakeDetection(absoluteImagePath);
+
+    // console.log('DEEPFAKE RAW RESULT =>', result);
+
+    // if (result && typeof result.isFake === 'boolean') {
+    //   deepfakeScan = result;
+    // }
 
     const blocked = await BlockedUser.findOne({
       where: {
@@ -234,6 +258,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         messageId: msg.id,
         contains_file: true,
         file_scan: msg.file_scan,
+        deepfake_scan: msg.deepfake_scan,
       });
     }
 

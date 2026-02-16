@@ -80,6 +80,8 @@ flutter:
     - images/get_started/3.png
     - images/get_started/4.png
     - images/upload_pic/upload_pic.png
+    - assets/images/default_user.png
+
 
 flutter_icons:
   android: true

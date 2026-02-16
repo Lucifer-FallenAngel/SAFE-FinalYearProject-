@@ -102,7 +102,7 @@ class _GetStartedState extends State<GetStarted> {
 
                   return Column(
                     children: [
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 0),
 
                       // IMAGE (TOP-HEAVY LIKE DESIGN)
                       Image.asset(

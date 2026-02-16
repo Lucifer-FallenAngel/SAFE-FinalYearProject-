@@ -709,6 +709,12 @@ class _ChatPageState extends State<ChatPage> {
                             ? jsonDecode(m['deepfake_scan'])
                             : m['deepfake_scan'];
 
+                        final bool? isActuallyFake = deepfakeScan == null
+                            ? null
+                            : !(deepfakeScan['isFake'] as bool);
+
+                        debugPrint('DEEPFAKE SCAN => ${m['deepfake_scan']}');
+
                         final showDateHeader =
                             index == 0 ||
                             DateTime.parse(
@@ -793,10 +799,71 @@ class _ChatPageState extends State<ChatPage> {
                                                                 ),
                                                           ),
                                                     ),
-                                                    builder: (_) =>
-                                                        VirusTotalReportSheet(
-                                                          scan: fileScan,
+                                                    builder: (_) {
+                                                      return SingleChildScrollView(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            // 🔐 VirusTotal
+                                                            VirusTotalReportSheet(
+                                                              scan:
+                                                                  Map<
+                                                                    String,
+                                                                    dynamic
+                                                                  >.from(
+                                                                    fileScan,
+                                                                  ),
+                                                            ),
+
+                                                            // 🧠 Deepfake
+                                                            if (deepfakeScan !=
+                                                                    null &&
+                                                                isActuallyFake
+                                                                    is bool)
+                                                              Padding(
+                                                                padding:
+                                                                    const EdgeInsets.all(
+                                                                      16,
+                                                                    ),
+                                                                child: Row(
+                                                                  children: [
+                                                                    Icon(
+                                                                      isActuallyFake ==
+                                                                              true
+                                                                          ? Icons.face_retouching_off
+                                                                          : Icons.verified_user,
+                                                                      color:
+                                                                          isActuallyFake ==
+                                                                              true
+                                                                          ? Colors.red
+                                                                          : Colors.green,
+                                                                    ),
+                                                                    const SizedBox(
+                                                                      width: 8,
+                                                                    ),
+                                                                    Expanded(
+                                                                      child: Text(
+                                                                        isActuallyFake ==
+                                                                                true
+                                                                            ? 'Deepfake detected (${(((deepfakeScan['confidence'] ?? 0) as num) * 100).toStringAsFixed(1)}%)'
+                                                                            : 'Real image (${(((deepfakeScan['confidence'] ?? 0) as num) * 100).toStringAsFixed(1)}%)',
+                                                                        style: const TextStyle(
+                                                                          fontSize:
+                                                                              14,
+                                                                          fontWeight:
+                                                                              FontWeight.w600,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                          ],
                                                         ),
+                                                      );
+                                                    },
                                                   );
                                                 },
 
@@ -854,31 +921,40 @@ class _ChatPageState extends State<ChatPage> {
                                                       MainAxisSize.min,
                                                   children: [
                                                     Icon(
-                                                      deepfakeScan['isFake'] ==
-                                                              true
+                                                      isActuallyFake == null
+                                                          ? Icons.help_outline
+                                                          : isActuallyFake ==
+                                                                true
                                                           ? Icons
                                                                 .face_retouching_off
                                                           : Icons.verified_user,
                                                       size: 14,
                                                       color:
-                                                          deepfakeScan['isFake'] ==
-                                                              true
+                                                          isActuallyFake == null
+                                                          ? Colors.orange
+                                                          : isActuallyFake ==
+                                                                true
                                                           ? Colors.red
                                                           : Colors.green,
                                                     ),
                                                     const SizedBox(width: 4),
                                                     Text(
-                                                      deepfakeScan['isFake'] ==
-                                                              true
-                                                          ? 'Deepfake detected (${(deepfakeScan['confidence'] * 100).toStringAsFixed(1)}%)'
-                                                          : 'Real image (${(deepfakeScan['confidence'] * 100).toStringAsFixed(1)}%)',
+                                                      isActuallyFake == null
+                                                          ? 'Deepfake scan failed'
+                                                          : isActuallyFake ==
+                                                                true
+                                                          ? 'Deepfake detected (${(((deepfakeScan['confidence'] ?? 0.0) as num) * 100).toStringAsFixed(1)}%)'
+                                                          : 'Real image (${(((deepfakeScan['confidence'] ?? 0.0) as num) * 100).toStringAsFixed(1)}%)',
                                                       style: TextStyle(
                                                         fontSize: 11,
                                                         fontWeight:
                                                             FontWeight.w600,
                                                         color:
-                                                            deepfakeScan['isFake'] ==
-                                                                true
+                                                            isActuallyFake ==
+                                                                null
+                                                            ? Colors.orange
+                                                            : isActuallyFake ==
+                                                                  true
                                                             ? Colors.red
                                                             : Colors.green,
                                                       ),
@@ -960,10 +1036,73 @@ class _ChatPageState extends State<ChatPage> {
                                                                 ),
                                                           ),
                                                     ),
-                                                    builder: (_) =>
-                                                        VirusTotalReportSheet(
-                                                          scan: fileScan,
+                                                    builder: (_) {
+                                                      return SingleChildScrollView(
+                                                        child: Column(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            // 🔐 VirusTotal section
+                                                            VirusTotalReportSheet(
+                                                              scan:
+                                                                  Map<
+                                                                    String,
+                                                                    dynamic
+                                                                  >.from(
+                                                                    fileScan,
+                                                                  ),
+                                                            ),
+
+                                                            // 🧠 Deepfake section
+                                                            if (deepfakeScan !=
+                                                                    null &&
+                                                                isActuallyFake
+                                                                    is bool)
+                                                              Padding(
+                                                                padding:
+                                                                    const EdgeInsets.all(
+                                                                      16,
+                                                                    ),
+                                                                child: Row(
+                                                                  children: [
+                                                                    Icon(
+                                                                      isActuallyFake ==
+                                                                              true
+                                                                          ? Icons.face_retouching_off
+                                                                          : Icons.verified_user,
+                                                                      color:
+                                                                          isActuallyFake ==
+                                                                              true
+                                                                          ? Colors.red
+                                                                          : Colors.green,
+                                                                    ),
+                                                                    const SizedBox(
+                                                                      width: 8,
+                                                                    ),
+                                                                    Expanded(
+                                                                      child: Text(
+                                                                        isActuallyFake ==
+                                                                                true
+                                                                            ? 'Deepfake detected (${(((deepfakeScan['confidence'] ?? 0.0) as num) * 100).toStringAsFixed(1)}%)'
+                                                                            : 'Real image (${(((deepfakeScan['confidence'] ?? 0.0) as num) * 100).toStringAsFixed(1)}%)',
+                                                                        style: const TextStyle(
+                                                                          fontSize:
+                                                                              14,
+                                                                          fontWeight:
+                                                                              FontWeight.w600,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                          ],
                                                         ),
+                                                      );
+                                                    },
                                                   );
                                                 },
 
@@ -1037,7 +1176,11 @@ class _ChatPageState extends State<ChatPage> {
                                                   ),
                                               builder: (_) =>
                                                   VirusTotalReportSheet(
-                                                    scan: urlScan,
+                                                    scan:
+                                                        Map<
+                                                          String,
+                                                          dynamic
+                                                        >.from(urlScan),
                                                   ),
                                             );
                                           },

@@ -7,7 +7,6 @@ const {
   extractVendorResults,
 } = require('../utils/virusTotal');
 
-// 🔹 Cache helpers (YOU MUST CREATE utils/scan_cache.js)
 const {
   getCachedScan,
   saveScanResult,
@@ -28,12 +27,53 @@ function vtBase64Url(url) {
     .replace(/\//g, '_');
 }
 
+// 🔥 Normalize VT analysis into FULL readable result
+function normalizeAnalysis(analysisResults = {}, stats = {}) {
+  const vendors = [];
+  const malwareTypes = new Set();
+
+  for (const [vendor, r] of Object.entries(analysisResults)) {
+    if (r.category === 'malicious' || r.category === 'suspicious') {
+      vendors.push({
+        vendor,
+        category: r.category,
+        result: r.result || 'unknown',
+        engine_version: r.engine_version,
+        method: r.method,
+      });
+
+      if (r.result) {
+        const res = r.result.toLowerCase();
+        if (res.includes('trojan')) malwareTypes.add('trojan');
+        if (res.includes('phishing')) malwareTypes.add('phishing');
+        if (res.includes('worm')) malwareTypes.add('worm');
+        if (res.includes('ransom')) malwareTypes.add('ransomware');
+        if (res.includes('spy')) malwareTypes.add('spyware');
+        if (res.includes('adware')) malwareTypes.add('adware');
+        if (res.includes('backdoor')) malwareTypes.add('backdoor');
+        if (res.includes('exploit')) malwareTypes.add('exploit');
+      }
+    }
+  }
+
+  const positives =
+    (stats.malicious || 0) + (stats.suspicious || 0);
+
+  return {
+    isSafe: positives === 0,
+    positives,
+    totalEngines: Object.keys(analysisResults).length,
+    stats,
+    malwareTypes: Array.from(malwareTypes),
+    vendors,
+  };
+}
 
 /* ============================================================
-   ENRICH URL SCAN (WITH CACHE + VENDOR RESULTS)
+   ENRICH URL SCAN (CACHE + FULL VENDOR DATA)
 ============================================================ */
 async function enrichUrlScan(url) {
-  // 1️⃣ CHECK CACHE FIRST
+  // 1️⃣ CACHE CHECK
   const cached = await getCachedScan('url', url);
   if (cached) {
     return {
@@ -45,7 +85,6 @@ async function enrichUrlScan(url) {
   // 2️⃣ BASE SCAN
   const base = await scanUrl(url);
 
-  // Disabled / error-safe fallback
   if (!VT_API_KEY || base.source === 'disabled' || base.error) {
     return base;
   }
@@ -55,20 +94,21 @@ async function enrichUrlScan(url) {
 
     const res = await axios.get(
       `https://www.virustotal.com/api/v3/urls/${encodedUrl}`,
-      {
-        headers: { 'x-apikey': VT_API_KEY },
-      }
+      { headers: { 'x-apikey': VT_API_KEY } }
     );
 
-    const analysis =
-      res.data.data.attributes.last_analysis_results || {};
+    const attrs = res.data?.data?.attributes || {};
+    const analysis = attrs.last_analysis_results || {};
+    const stats = attrs.last_analysis_stats || {};
+
+    const normalized = normalizeAnalysis(analysis, stats);
 
     const enriched = {
       ...base,
-      vendors: extractVendorResults(analysis),
+      ...normalized,
+      raw: undefined, // keep payload light
     };
 
-    // 3️⃣ SAVE TO CACHE
     await saveScanResult('url', url, enriched);
 
     return {
@@ -82,10 +122,10 @@ async function enrichUrlScan(url) {
 }
 
 /* ============================================================
-   ENRICH FILE SCAN (CACHE → HASH → UPLOAD → VENDORS)
+   ENRICH FILE SCAN (CACHE → HASH → UPLOAD → FULL REPORT)
 ============================================================ */
 async function enrichFileScan(hash, filePath, allowUpload = false) {
-  // 1️⃣ CHECK CACHE FIRST (BY HASH)
+  // 1️⃣ CACHE CHECK
   const cached = await getCachedScan('file', hash);
   if (cached) {
     return {
@@ -97,7 +137,7 @@ async function enrichFileScan(hash, filePath, allowUpload = false) {
   // 2️⃣ HASH SCAN
   let base = await scanFileHash(hash);
 
-  // 🟡 Unknown hash → optional upload fallback
+  // 🟡 Unknown hash → optional upload
   if (base.unknown && allowUpload && filePath) {
     base = await scanFileByUpload(filePath);
   }
@@ -109,20 +149,21 @@ async function enrichFileScan(hash, filePath, allowUpload = false) {
   try {
     const res = await axios.get(
       `https://www.virustotal.com/api/v3/files/${hash}`,
-      {
-        headers: { 'x-apikey': VT_API_KEY },
-      }
+      { headers: { 'x-apikey': VT_API_KEY } }
     );
 
-    const analysis =
-      res.data.data.attributes.last_analysis_results || {};
+    const attrs = res.data?.data?.attributes || {};
+    const analysis = attrs.last_analysis_results || {};
+    const stats = attrs.last_analysis_stats || {};
+
+    const normalized = normalizeAnalysis(analysis, stats);
 
     const enriched = {
       ...base,
-      vendors: extractVendorResults(analysis),
+      ...normalized,
+      raw: undefined,
     };
 
-    // 3️⃣ SAVE TO CACHE
     await saveScanResult('file', hash, enriched);
 
     return {

@@ -7,8 +7,18 @@ class VirusTotalReportSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vendors = (scan['vendors'] ?? []) as List<dynamic>;
+    final vendors = (scan['vendors'] as List<dynamic>? ?? [])
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+
+    final malwareTypes = (scan['malwareTypes'] as List<dynamic>? ?? [])
+        .cast<String>();
+
+    final stats = Map<String, dynamic>.from(scan['stats'] as Map? ?? {});
+
     final isSafe = scan['isSafe'] == true;
+    final positives = scan['positives'] ?? 0;
+    final totalEngines = scan['totalEngines'] ?? vendors.length;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
@@ -62,9 +72,45 @@ class VirusTotalReportSheet extends StatelessWidget {
 
           /// 📊 SUMMARY
           Text(
-            "Detected by ${scan['positives']} of ${scan['total']} vendors",
+            "Detected by $positives of $totalEngines security engines",
             style: const TextStyle(fontSize: 14),
           ),
+
+          if (!isSafe && stats.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                "Malicious: ${stats['malicious'] ?? 0}, "
+                "Suspicious: ${stats['suspicious'] ?? 0}",
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+
+          /// 🧬 MALWARE TYPES
+          if (malwareTypes.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: malwareTypes.map<Widget>((type) {
+                  return Chip(
+                    label: Text(
+                      type.toString().toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    backgroundColor: Colors.red.shade100,
+                  );
+                }).toList(),
+              ),
+            ),
 
           const SizedBox(height: 16),
 
@@ -77,46 +123,56 @@ class VirusTotalReportSheet extends StatelessWidget {
           const SizedBox(height: 8),
 
           Expanded(
-            child: ListView.separated(
-              itemCount: vendors.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final v = vendors[index];
-                final category = v['category'];
-                final result = v['result'];
+            child: vendors.isEmpty
+                ? const Center(
+                    child: Text(
+                      "No vendor detections available",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: vendors.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final v = vendors[index];
+                      final category = v['category'];
+                      final result = v['result'];
 
-                Color color;
-                IconData icon;
+                      Color color;
+                      IconData icon;
 
-                switch (category) {
-                  case 'malicious':
-                    color = Colors.red;
-                    icon = Icons.dangerous;
-                    break;
-                  case 'suspicious':
-                    color = Colors.orange;
-                    icon = Icons.warning;
-                    break;
-                  default:
-                    color = Colors.green;
-                    icon = Icons.check_circle;
-                }
+                      switch (category) {
+                        case 'malicious':
+                          color = Colors.red;
+                          icon = Icons.dangerous;
+                          break;
+                        case 'suspicious':
+                          color = Colors.orange;
+                          icon = Icons.warning;
+                          break;
+                        default:
+                          color = Colors.green;
+                          icon = Icons.check_circle;
+                      }
 
-                return ListTile(
-                  leading: Icon(icon, color: color),
-                  title: Text(v['vendor']),
-                  subtitle: result != null
-                      ? Text(
-                          result,
-                          style: TextStyle(
-                            color: color,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        )
-                      : const Text('No threat detected'),
-                );
-              },
-            ),
+                      return ListTile(
+                        leading: Icon(icon, color: color),
+                        title: Text(
+                          v['vendor'] ?? 'Unknown Vendor',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: result != null
+                            ? Text(
+                                result,
+                                style: TextStyle(
+                                  color: color,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              )
+                            : const Text('No threat detected'),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

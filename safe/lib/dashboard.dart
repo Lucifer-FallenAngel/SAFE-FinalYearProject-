@@ -263,7 +263,8 @@ class _DashboardPageState extends State<DashboardPage>
               ? NetworkImage(
                   "$_serverBaseUrl/uploads/profile_pics/${u['profile_pic']}",
                 )
-              : const AssetImage('images/default_user.png') as ImageProvider;
+              : const AssetImage('assets/images/default_user.png')
+                    as ImageProvider;
 
           return ListTile(
             contentPadding: const EdgeInsets.symmetric(
